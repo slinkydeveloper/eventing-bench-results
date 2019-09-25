@@ -1,0 +1,18 @@
+dir = ARG1
+publish_latency = dir."/p99-9-publish-latency.csv"
+delivery_latency = dir."/p99-9-delivery-latency.csv"
+send_thpt = dir."/send-throughput.csv"
+delivery_thpt = dir."/delivery-throughput.csv"
+latency_upper_bound = ARG2
+thpt_lower_bound = ARG3
+thpt_upper_bound = ARG4
+set datafile separator comma
+set datafile missing ""
+set y2tics thpt_lower_bound,100
+set ytics nomirror
+set y2range[thpt_lower_bound:thpt_upper_bound]
+set xlabel "Epoch"
+set ylabel "Latency (ms)"
+set y2label "Throughput (req/s)"
+plot publish_latency u 1:($2 < latency_upper_bound ? $2 : 1/0) with lines axis x1y1 title "Publish latency percentile", delivery_latency u 1:($2 < latency_upper_bound ? $2 : 1/0) with lines axis x1y1 title "End to End latency percentile", send_thpt u 1:($2 > thpt_lower_bound && $2 < thpt_upper_bound ? $2 : 1/0) with lines axis x1y2 title "Sender throughput", delivery_thpt u 1:($2 > thpt_lower_bound && $2 < thpt_upper_bound ? $2 : 1/0) with lines axis x1y2 title "Receiver throughput"
+pause -1
