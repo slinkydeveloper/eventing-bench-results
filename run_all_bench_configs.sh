@@ -8,6 +8,10 @@ echo_status() {
   printf "%s %s %s\n" "---" "$1" "---"
 }
 
+contains() {
+    [[ $1 =~ (^|,)$2($|,) ]] && return 0 || return 1
+}
+
 check_command_exists() {
   CMD_NAME=$1
   CMD_INSTALL_WITH=$([ -z "$2" ] && echo "" || printf "\nInstall using '%s'" "$2")
@@ -58,7 +62,7 @@ run_imc_channel() {
   echo_status "Configuring"
   local channel_dir=$1
   local pace=$2
-  local out_file="$3/imc-channel.csv"
+  local out_file="$3/channel-imc.csv"
   kubectl apply -f "$channel_dir/100-channel-perf-setup.yaml"
 
   kubectl wait channel -n perf-eventing --for=condition=Ready --all
@@ -73,13 +77,15 @@ run_imc_channel() {
   kubectl logs -n perf-eventing channel-perf-aggregator mako-stub -f > "$out_file"
 
   echo_status "Collected test results in $out_file"
+
+  kubectl delete namespace perf-eventing
 }
 
 run_imc_broker() {
   echo_status "Configuring"
   local broker_dir=$1
   local pace=$2
-  local out_file="$3/imc-broker.csv"
+  local out_file="$3/broker-imc.csv"
   kubectl apply -f "$broker_dir/100-broker-perf-setup.yaml"
 
   kubectl wait broker -n perf-eventing --for=condition=Ready --all
@@ -102,7 +108,7 @@ run_kafka_channel() {
   echo_status "Configuring"
   local channel_dir=$1
   local pace=$2
-  local out_file="$3/kafka-channel.csv"
+  local out_file="$3/channel-kafka.csv"
   kubectl apply -f "$channel_dir/100-channel-perf-setup.yaml"
 
   kubectl wait channel -n perf-eventing --for=condition=Ready --all
@@ -125,7 +131,7 @@ run_kafka_broker() {
   echo_status "Configuring"
   local broker_dir=$1
   local pace=$2
-  local out_file="$3/kafka-broker.csv"
+  local out_file="$3/broker-kafka.csv"
   kubectl apply -f "$broker_dir/100-broker-perf-setup.yaml"
 
   kubectl wait broker -n perf-eventing --for=condition=Ready --all
@@ -144,9 +150,10 @@ run_kafka_broker() {
   kubectl delete namespace perf-eventing
 }
 
-if [[ $# -lt 1 ]]
+if [[ $# -lt 2 ]]
 then
-  echo "Usage: $0 <pace-configuration> [out_dir]"
+  echo "Usage: $0 <tests-to-run-comma-separated> <pace-configuration> [out_dir]"
+  echo "Available tests: direct, channel-imc, broker-imc, channel-kafka, broker-kafka"
   exit 1
 fi
 
@@ -165,48 +172,80 @@ knative_eventing_contrib_performance="$GOPATH/src/knative.dev/eventing-contrib/t
 check_dir_exists "$knative_eventing_performance"
 check_dir_exists "$knative_eventing_contrib_performance"
 
-echo "Do you want to process run results too (it requires a lot of time)?(yes/NO)"
+echo "Do you want to process run results too (it requires a lot of time)? (yes/NO)"
 read -r process_results
 
-pace=$1
+tests_to_run=$1
+pace=$2
 when=$(date +"%m-%d-%Y--%H-%M-%S")
-out_dir=${2:-$when}
+out_dir=${3:-$when}
 mkdir -p "$out_dir"
 
 echo_header "All results will be under $out_dir"
+echo "Using tests $tests_to_run"
 echo "Using pace $pace"
 
 printf "# Test run %s\nPace configuration \`%s\`\n" "$when" "$pace" > "$out_dir/README.md"
 
-echo_header "Direct"
-run_direct "$knative_eventing_performance/direct" "$pace" "$out_dir"
+if contains "$tests_to_run" "direct"
+then
+  echo_header "Direct"
+  run_direct "$knative_eventing_performance/direct" "$pace" "$out_dir"
+fi
 
-echo_header "In Memory Channel"
-run_imc_channel "$knative_eventing_performance/channel-imc" "$pace" "$out_dir"
+if contains "$tests_to_run" "channel-imc"
+then
+  echo_header "In Memory Channel"
+  run_imc_channel "$knative_eventing_performance/channel-imc" "$pace" "$out_dir"
+fi
 
-echo_header "In Memory Channel - Broker"
-run_imc_channel "$knative_eventing_performance/broker-imc" "$pace" "$out_dir"
+if contains "$tests_to_run" "broker-imc"
+then
+  echo_header "In Memory Channel - Broker"
+  run_imc_broker "$knative_eventing_performance/broker-imc" "$pace" "$out_dir"
+fi
 
-echo_header "Kafka Channel"
-run_imc_channel "$knative_eventing_contrib_performance/channel-kafka" "$pace" "$out_dir"
+if contains "$tests_to_run" "channel-kafka"
+then
+  echo_header "Kafka Channel"
+  run_kafka_channel "$knative_eventing_contrib_performance/channel-kafka" "$pace" "$out_dir"
+fi
 
-echo_header "Kafka Channel - Broker"
-run_imc_channel "$knative_eventing_contrib_performance/broker-kafka" "$pace" "$out_dir"
+if contains "$tests_to_run" "broker-kafka"
+then
+  echo_header "Kafka Channel - Broker"
+  run_kafka_broker "$knative_eventing_contrib_performance/broker-kafka" "$pace" "$out_dir"
+fi
 
 if [ "$process_results" == "yes" ]
 then
-  echo_header "Processing direct.csv"
-  bash parse_run.sh "$out_dir/direct.csv" "$out_dir/direct"
+  if contains "$tests_to_run" "direct"
+  then
+    echo_header "Processing direct.csv"
+    bash parse_run.sh "$out_dir/direct.csv" "$out_dir/direct"
+  fi
   
-  echo_header "Processing imc-channel.csv"
-  bash parse_run.sh "$out_dir/imc-channel.csv" "$out_dir/imc-channel"
+  if contains "$tests_to_run" "channel-imc"
+  then
+    echo_header "Processing channel-imc.csv"
+    bash parse_run.sh "$out_dir/channel-imc.csv" "$out_dir/channel-imc"
+  fi
   
-  echo_header "Processing imc-broker.csv"
-  bash parse_run.sh "$out_dir/imc-broker.csv" "$out_dir/imc-broker"
-  
-  echo_header "Processing kafka-channel.csv"
-  bash parse_run.sh "$out_dir/kafka-channel.csv" "$out_dir/kafka-channel"
-  
-  echo_header "Processing kafka-broker.csv"
-  bash parse_run.sh "$out_dir/kafka-broker.csv" "$out_dir/kafka-broker"
+  if contains "$tests_to_run" "broker-imc"
+  then
+    echo_header "Processing broker-imc.csv"
+    bash parse_run.sh "$out_dir/broker-imc.csv" "$out_dir/broker-imc"
+  fi
+
+  if contains "$tests_to_run" "channel-kafka"
+  then
+    echo_header "Processing channel-kafka.csv"
+    bash parse_run.sh "$out_dir/channel-kafka.csv" "$out_dir/channel-kafka"
+  fi
+
+  if contains "$tests_to_run" "broker-kafka"
+  then
+    echo_header "Processing broker-kafka.csv"
+    bash parse_run.sh "$out_dir/broker-kafka.csv" "$out_dir/broker-kafka"
+  fi
 fi
