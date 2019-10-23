@@ -150,10 +150,37 @@ run_kafka_broker() {
   kubectl delete namespace perf-eventing
 }
 
+run_kafka_source() {
+  echo_status "Configuring"
+  local source_dir=$1
+  local pace=$2
+  local out_file="$3/source-kafka.csv"
+  kubectl apply -f "$source_dir/100-source-perf-setup.yaml"
+
+  kubectl wait kafkatopics/perf-topic --for=condition=Ready --timeout=10m -n kafka
+
+  kubectl apply -f "$source_dir/101-source-perf-setup.yaml"
+
+  kubectl wait kafkasource -n perf-eventing --for=condition=Ready --all
+
+  echo_status "Starting"
+  local run_config=$(configure_test_run "$source_dir/200-source-perf.yaml" "$pace")
+  ko apply -f "$run_config"
+
+  kubectl wait pod -n perf-eventing --timeout=5m --for=condition=Ready --all
+
+  echo_status "Collecting metrics"
+  kubectl logs -n perf-eventing source-perf-aggregator mako-stub -f > "$out_file"
+
+  echo_status "Collected test results in $out_file"
+
+  kubectl delete -f "$source_dir/100-source-perf-setup.yaml"
+}
+
 if [[ $# -lt 2 ]]
 then
   echo "Usage: $0 <tests-to-run-comma-separated> <pace-configuration> [out_dir]"
-  echo "Available tests: direct, channel-imc, broker-imc, channel-kafka, broker-kafka"
+  echo "Available tests: direct, channel-imc, broker-imc, channel-kafka, broker-kafka, source-kafka"
   exit 1
 fi
 
@@ -217,6 +244,12 @@ then
   run_kafka_broker "$knative_eventing_contrib_performance/broker-kafka" "$pace" "$out_dir"
 fi
 
+if contains "$tests_to_run" "source-kafka"
+then
+  echo_header "Kafka Source"
+  run_kafka_source "$knative_eventing_contrib_performance/source-kafka" "$pace" "$out_dir"
+fi
+
 if [ "$process_results" == "yes" ]
 then
   if contains "$tests_to_run" "direct"
@@ -247,5 +280,11 @@ then
   then
     echo_header "Processing broker-kafka.csv"
     bash parse_run.sh "$out_dir/broker-kafka.csv" "$out_dir/broker-kafka"
+  fi
+
+  if contains "$tests_to_run" "source-kafka"
+  then
+    echo_header "Processing source-kafka.csv"
+    bash parse_run.sh "$out_dir/source-kafka.csv" "$out_dir/source-kafka"
   fi
 fi
