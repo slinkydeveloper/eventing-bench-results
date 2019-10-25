@@ -67,3 +67,9 @@ pick_throughput "$in_csv" "$out_dir/send-throughput.csv" "4"
 
 echo_header "Picking delivery throughput"
 pick_throughput "$in_csv" "$out_dir/delivery-throughput.csv" "5"
+
+echo_header "Picking send failure throughput"
+pick_throughput "$in_csv" "$out_dir/send-failure-throughput.csv" "6"
+
+echo_header "Picking delivery failure throughput"
+pick_throughput "$in_csv" "$out_dir/delivery-failure-throughput.csv" "7"
