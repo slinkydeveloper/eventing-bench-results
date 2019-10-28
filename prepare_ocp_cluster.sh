@@ -103,6 +103,24 @@ EOF
   echo "Knative Eventing Kafka ready"
 }
 
+function install_service_elasticsearch() {
+  cat <<-EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: elasticsearch
+  namespace: openshift-operators
+spec:
+  channel: preview
+  name: elasticsearch-operator
+  source: devint-operators
+  sourceNamespace: openshift-operators
+  installPlanApproval: Automatic
+EOF
+  sleep 5
+  
+}
+
 if [ -z "$KO_DOCKER_REPO" ]
 then
       echo "\$KO_DOCKER_REPO not configured"
