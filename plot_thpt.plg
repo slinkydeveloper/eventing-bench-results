@@ -1,0 +1,15 @@
+dir = ARG1
+send_thpt = dir."/send-throughput.csv"
+delivery_thpt = dir."/delivery-throughput.csv"
+send_failure_thpt = dir."/send-failure-throughput.csv"
+delivery_failure_thpt = dir."/delivery-failure-throughput.csv"
+thpt_lower_bound = ARG2
+thpt_upper_bound = ARG3
+set datafile separator comma
+set datafile missing ""
+set ytics thpt_lower_bound,100
+set yrange[thpt_lower_bound:thpt_upper_bound]
+set xlabel "Epoch"
+set ylabel "Throughput (req/s)"
+plot send_thpt u 1:($2 > thpt_lower_bound && $2 < thpt_upper_bound ? $2 : 1/0) with lines axis x1y1 title "Sender throughput", delivery_thpt u 1:($2 > thpt_lower_bound && $2 < thpt_upper_bound ? $2 : 1/0) with lines axis x1y1 title "Receiver throughput", send_failure_thpt u 1:($2 > thpt_lower_bound && $2 < thpt_upper_bound ? $2 : 1/0) with lines axis x1y1 title "Sender Failure throughput", delivery_failure_thpt u 1:($2 > thpt_lower_bound && $2 < thpt_upper_bound ? $2 : 1/0) with lines axis x1y1 title "Receiver Failure throughput"
+pause -1

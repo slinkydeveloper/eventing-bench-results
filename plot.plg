@@ -1,6 +1,6 @@
 dir = ARG1
-publish_latency = dir."/p99-9-publish-latency.csv"
-delivery_latency = dir."/p99-9-delivery-latency.csv"
+publish_latency = dir."/p99-99-publish-latency.csv"
+delivery_latency = dir."/p99-99-delivery-latency.csv"
 send_thpt = dir."/send-throughput.csv"
 delivery_thpt = dir."/delivery-throughput.csv"
 send_failure_thpt = dir."/send-failure-throughput.csv"
@@ -10,8 +10,8 @@ thpt_lower_bound = ARG3
 thpt_upper_bound = ARG4
 set datafile separator comma
 set datafile missing ""
-set y2tics thpt_lower_bound,100
 set ytics nomirror
+set y2tics thpt_lower_bound,100
 set y2range[thpt_lower_bound:thpt_upper_bound]
 set xlabel "Epoch"
 set ylabel "Latency (ms)"
