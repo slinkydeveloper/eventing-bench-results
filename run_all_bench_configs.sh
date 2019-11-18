@@ -18,7 +18,7 @@ reset_knative_eventing() {
 
 reset_kafka() {
   kubectl delete kt --all-namespaces --all
-  kubectl delete pods -n kafka my-cluster-kafka-0 my-cluster-zookeeper-0
+  kubectl delete pods -n kafka --all
   sleep 10
   kubectl wait pod -n kafka --for=condition=Ready --all
 }
