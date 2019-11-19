@@ -13,6 +13,7 @@ set datafile missing ""
 set y2tics thpt_lower_bound,100
 set ytics nomirror
 set y2range[thpt_lower_bound:thpt_upper_bound]
+set format x '%.0f'
 set xlabel "Epoch"
 set ylabel "Latency (ms)"
 set y2label "Throughput (req/s)"

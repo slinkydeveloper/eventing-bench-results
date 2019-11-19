@@ -30,6 +30,7 @@ spec:
     - "--sink=http://kafka-test-broker-broker.perf-eventing.svc.cluster.local"
     - "--aggregator=broker-perf-aggregator:10000"
     - "--pace=500:30,600:30,700:30,800:30,900:30,1000:30"
+    - "--msg-size=8192"
     env:
     - name: POD_NAME
       valueFrom:
