@@ -57,7 +57,7 @@ With gnuplot visualization you can zoom in particular regions of the graph, givi
 
 Note:
 
-* `run-1-1k-2k` results can be misleading, since in this particular runs the eventing data-plane pods weren't destroyed between tests
+* `run-1-1k-2k` results can be misleading, since in this particular run the eventing data-plane pods weren't destroyed between tests
 * Send throughput shows the effective load the test image can deliver, so this value should match the pace configuration. After the breaking point of the SUTs, the test image could be slowed down by the SUTs itself ([coordinated omission](http://highscalability.com/blog/2015/10/5/your-load-generator-is-probably-lying-to-you-take-the-red-pi.html)). This probably happens because too much requests are waiting for response and Go runtime can't manage to efficiently create new goroutines to generate the load
 * Those results should not be considered final and exact, but they should be used as a landmark for future improvements in Knative Eventing
 * Carefully look at the scale of the graphs, since each graph has potentially a different scale to adapt to the image resolution
@@ -86,7 +86,7 @@ At the beginning of each test in 1k-2k configuration, there is a huge spike for 
 
 ![](run-2-1k-long/channel-imc-points-beginning.png)Data points zoom of beginning of run-2-1k-long
 
-Both 1k-long results proves that imc-channel manages to have a p99.99 latency between 20-30ms:
+Both 1k-long results proves that imc-channel manages to have a p99.99 e2e latency between 20-30ms:
 
 ![](run-1-1k-long/channel-imc.png)run-1-1k-long
 
