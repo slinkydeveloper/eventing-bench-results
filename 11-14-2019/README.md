@@ -184,3 +184,41 @@ Next runs should investigate further on this particular problem
 ## Profiling
 
 In the profile directory you'll find some profiling data gathered while the system is stressed with 1000 rps.
+
+### Kafka Channel
+
+CPU time:
+
+![](profile/kafka_channel_cpu.png)CPU flamegraph from pprof.channel_dispatcher.samples.cpu.002.pb.gz
+
+KafkaChannel does GC for 29.71% of CPU time
+
+Memory allocations space:
+
+![](profile/kafka_channel_mem.png)Memory flamegraph from pprof.channel_dispatcher.alloc_objects.alloc_space.inuse_objects.inuse_space.005.pb.gz
+
+The big allocators are:
+
+* ~22% `channel.(*MessageReceiver).fromRequest` uses `ioutil.ReadAll` that allocates a buffer big enough to host the request body. This could be fixed reusing the short lived buffers allocated. 
+* ~35% `kafka.(*saramaConsumerHandler).ConsumeClaim` had a bad log line that allocates memory to log the whole event. This should be fixed in https://github.com/knative/eventing-contrib/pull/743
+* ~29% sarama sender and receiver code that allocates memory to read/write/encode/decode on kafka wire.
+
+### Kafka Source
+
+CPU time:
+
+![](profile/kafka_source_cpu.png)CPU flamegraph from pprof.receive_adapter.samples.cpu.005.pb.gz
+
+Looking at graph, memory allocation doesn't seem the biggest problem (gc worker uses ~7% of cpu time), however looking at top data, cumulated CPU time of mallocs is ~29% of CPU time.
+
+Looking down the `adapter.(*Adapter).Handle.func1` function, most of time is spend in `client.(*ceClient).Send` (~5% of total CPU time).
+The `client.(*ceClient).Send` method time is mostly dominated by `http.(*Codec).Encode`, which is dominated by `observability.NewReporter` and `observability.(*reporter).OK`.
+
+Memory allocations space:
+
+![](profile/kafka_source_mem.png)Memory flamegraph from pprof.receive_adapter.alloc_objects.alloc_space.inuse_objects.inuse_space.005.pb.gz
+
+The big allocators are:
+
+* ~40% sarama receiver
+* ~16% `github.com/cloudevents/sdk-go/pkg/cloudevents/transport/http.(*Message).copyOut`: This method copies the whole event in a newly allocated buffer before sending it. https://github.com/cloudevents/sdk-go/issues/191#issuecomment-555113899
