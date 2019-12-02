@@ -5,6 +5,13 @@ metadata:
   namespace: kafka
 spec:
   kafka:
+    resources:
+      requests:
+        cpu: 16
+        memory: 8Gi
+      limits:
+        cpu: 16
+        memory: 8Gi
     template:
       pod:
         affinity:
@@ -34,6 +41,13 @@ spec:
           size: 10Gi
           deleteClaim: true
   zookeeper:
+    resources:
+      requests:
+        cpu: 16
+        memory: 8Gi
+      limits:
+        cpu: 16
+        memory: 8Gi
     replicas: 1
     storage:
       type: persistent-claim

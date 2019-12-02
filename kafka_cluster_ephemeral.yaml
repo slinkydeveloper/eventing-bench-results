@@ -5,6 +5,13 @@ metadata:
   namespace: kafka
 spec:
   kafka:
+    resources:
+      requests:
+        cpu: 16
+        memory: 8Gi
+      limits:
+        cpu: 16
+        memory: 8Gi
     template:
       pod:
         affinity:
@@ -29,6 +36,13 @@ spec:
     storage:
       type: ephemeral
   zookeeper:
+    resources:
+      requests:
+        cpu: 16
+        memory: 8Gi
+      limits:
+        cpu: 16
+        memory: 8Gi
     replicas: 1
     storage:
       type: ephemeral
